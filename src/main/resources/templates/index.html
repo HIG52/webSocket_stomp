@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Main Page</title>
+    <!-- SockJS 클라이언트 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+    <!-- STOMP.js 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script>
+        var stompClient = null;
+
+        /**
+         * WebSocket 연결을 설정하고 STOMP 클라이언트를 초기화합니다.
+         */
+        function connect() {
+            var socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                console.log('Connected: ' + frame);
+                stompClient.subscribe('/topic/public', function (message) {
+                    console.log(JSON.parse(message.body).content);
+                    showMessage(JSON.parse(message.body).content);
+                });
+            });
+        }
+
+        /**
+         * 사용자가 입력한 메시지를 서버로 전송합니다.
+         */
+        function sendMessage() {
+            var messageContent = document.getElementById('chat').value;
+            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify({'content': messageContent}));
+        }
+
+        /**
+         * 서버로부터 수신한 메시지를 화면에 표시합니다.
+         * @param {string} message - 서버로부터 수신한 메시지
+         */
+        function showMessage(message) {
+            var response = document.getElementById('response');
+            var p = document.createElement('p');
+            p.appendChild(document.createTextNode(message));
+            response.appendChild(p);
+        }
+
+        /**
+         * 페이지가 로드될 때 WebSocket 연결을 설정합니다.
+         */
+        window.onload = function() {
+            connect();
+        };
+    </script>
+</head>
+<body>
+<!-- 사용자가 메시지를 입력할 수 있는 텍스트 영역 -->
+<textarea id="chat" rows="10" cols="50"></textarea>
+<!-- 메시지를 전송하는 버튼 -->
+<button onclick="sendMessage()">Send</button>
+<!-- 서버로부터 수신한 메시지를 표시하는 영역 -->
+<div id="response"></div>
+</body>
+</html>
